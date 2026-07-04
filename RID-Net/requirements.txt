@@ -1,0 +1,6 @@
+torch>=2.0.0
+rdkit>=2023.03
+numpy>=1.24
+scikit-learn>=1.2
+pandas>=2.0
+tqdm
