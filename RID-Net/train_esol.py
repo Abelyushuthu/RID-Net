@@ -64,7 +64,7 @@ def evaluate(model, loader, device):
         "r2": r2_score(t, p),
     }
 
-def run_experiment(df, cfg, train_idx, val_idx, test_idx, device, seed=42, epochs=200, use_ssr=True):
+def run_experiment(df, cfg, train_idx, val_idx, test_idx, device, seed=42, epochs=200, use_ssr=True, model_class=RIDNet):
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
     all_e, all_p, all_f, all_y = preprocess(df, cfg["target_col"])
 
@@ -81,7 +81,7 @@ def run_experiment(df, cfg, train_idx, val_idx, test_idx, device, seed=42, epoch
                    [all_f[i] for i in test_idx], all_y[test_idx]),
         batch_size=32, collate_fn=collate)
 
-    model = RIDNet().to(device)
+    model = model_class().to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-5)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', factor=0.5, patience=20)
     rules = cfg["rules"] if use_ssr else []
@@ -141,7 +141,7 @@ def main():
                 else:
                     ti, va, te = scaffold_split(df)
                 tm = run_experiment(df, cfg, ti, va, te, args.device,
-                                    seed=seed, epochs=args.epochs, use_ssr=args.use_ssr)
+                                    seed=seed, epochs=args.epochs, use_ssr=args.use_ssr, model_class=model_class)
                 split_results[st]["s{}".format(seed)] = {k: float(v) for k, v in tm.items()}
                 print("    TEST: RMSE={:.4f} MAE={:.4f} R2={:.4f}".format(tm["rmse"], tm["mae"], tm["r2"]))
 
@@ -164,9 +164,9 @@ def main():
             print("  {:10s} {:8s}: RMSE = {:.4f} +- {:.4f}".format(ds, st, np.mean(rms), np.std(rms)))
 
     os.makedirs("results", exist_ok=True)
-    with open("results/all_results.json", "w") as f:
+    with open("results.json", "w") as f:
         json.dump(all_results, f, indent=2, default=str)
-    print("Saved to results/all_results.json")
+    print("Saved to results.json")
 
 
 if __name__ == "__main__":

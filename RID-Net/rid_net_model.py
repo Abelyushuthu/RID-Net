@@ -170,7 +170,7 @@ def gen_conf(smiles, seed=42):
         AllChem.EmbedMolecule(mol, useRandomCoords=True, maxAttempts=500)
     try:
         AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
-    except:
+    except Exception:
         AllChem.UFFOptimizeMolecule(mol, maxIters=500)
     return Chem.RemoveHs(mol)
 
@@ -193,23 +193,6 @@ def preprocess(df, target_col):
             pos_list.append(pos)
             fp_list.append(fp)
             labels.append(row[target_col])
-        except:
+        except Exception:
             pass
     return els_list, pos_list, fp_list, torch.tensor(labels, dtype=torch.float)
-
-
-def scaffold_split(df):
-    scaf = defaultdict(list)
-    for i, row in df.iterrows():
-        mol = Chem.MolFromSmiles(row["smiles"])
-        if mol:
-            scaf[MurckoScaffold.MurckoScaffoldSmiles(mol=mol)].append(i)
-    train, val, test = [], [], []
-    for sset in sorted(scaf.values(), key=len, reverse=True):
-        if len(test) < int(len(df)*0.2):
-            test.extend(sset)
-        elif len(val) < int(len(df)*0.1):
-            val.extend(sset)
-        else:
-            train.extend(sset)
-    return train, val, test
